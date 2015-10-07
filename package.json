@@ -1,0 +1,17 @@
+{
+  "name": "agentStateToMongo",
+  "version": "0.1.0",
+  "description": "This copies the eve3.1 agent state from FileSystem to MongoDB",
+  "main": "convert.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Shravan Shetty",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^2.10.2",
+    "fs": "0.0.2",
+    "mongodb": "~2.0",
+    "path": "^0.12.7"
+  }
+}
