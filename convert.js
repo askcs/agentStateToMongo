@@ -126,10 +126,11 @@ var insertToMongo = function(db, collection, agentMongoData) {
 				console.log('Error: ' + JSON.stringify(err) + ' in file: ' + agentMongoData._id + '. Trying to replace by unicode equivalent \\uff0e');
 				//replace all keys that has . in them with its unicode equivalent
 				if (err.message.indexOf('must not contain \'.\'') != -1) {
-					Object.keys(agentMongoData.properties).forEach(function(propertiesKey) {
-						var dotReplacedKey = propertiesKey.replace('.', '\\uff0e');
-						agentMongoData = JSON.parse(JSON.stringify(agentMongoData).replace(propertiesKey, dotReplacedKey));
-					});
+					var propertiesKeys = Object.keys(agentMongoData.properties);
+					for (var count = 0; count < propertiesKeys.length; count++) {
+						var dotReplacedKey = propertiesKeys[count].replace('.', '\\uff0e');
+						agentMongoData = JSON.parse(JSON.stringify(agentMongoData).replace(propertiesKeys[count], dotReplacedKey));
+					}
 					reject(agentMongoData);
 				} else {
 					reject(err);
