@@ -84,22 +84,59 @@ var convertFilesInDir = function(db, collection, dirPath) {
 						}
 						agentMongoData["properties"] = JSON.parse(json);
 						//write agentMongoData to db
-						var dbCollection = db.collection(collection)
-						dbCollection.insert(agentMongoData, function(err, result) {
-							if (err) {
-								reject(err);
+						insertToMongo(db, collection, agentMongoData).then(function(result) {
+							allFiles[count] = file;
+							if (++count == files.length) {
+								promisedResult["count"] = count;
+								promisedResult["result"] = allFiles;
+								resolve(promisedResult);
+							}
+						}).error(function(err) {
+							//check if the json entity is returned back
+							if (err._id) {
+								insertToMongo(db, collection, err).then(function(result) {
+									console.log('Succesfully updated...');
+									allFiles[count] = file;
+									if (++count == files.length) {
+										promisedResult["count"] = count;
+										promisedResult["result"] = allFiles;
+										resolve(promisedResult);
+									}
+								}).error(function(err) {
+									console.log('Something really went wrong! Error: ' + JSON.stringify(err));
+									reject(err);
+								})
 							} else {
-								allFiles[count] = file;
-								if (++count == files.length) {
-									promisedResult["count"] = count;
-									promisedResult["result"] = allFiles;
-									resolve(promisedResult);
-								}
+								console.log('Something really went wrong! Error: ' + JSON.stringify(err));
+								reject(err);
 							}
 						});
 					}
 				});
 			});
+		});
+	});
+}
+
+var insertToMongo = function(db, collection, agentMongoData) {
+	return new Promise(function(resolve, reject) {
+		var dbCollection = db.collection(collection);
+		dbCollection.insert(agentMongoData, function(err, result) {
+			if (err) {
+				console.log('Error: ' + JSON.stringify(err) + ' in file: ' + agentMongoData._id + '. Trying to replace by unicode equivalent \\uff0e');
+				//replace all keys that has . in them with its unicode equivalent
+				if (err.message.indexOf('must not contain \'.\'') != -1) {
+					Object.keys(agentMongoData.properties).forEach(function(propertiesKey) {
+						var dotReplacedKey = propertiesKey.replace('.', '\\uff0e');
+						agentMongoData = JSON.parse(JSON.stringify(agentMongoData).replace(propertiesKey, dotReplacedKey));
+					});
+					reject(agentMongoData);
+				} else {
+					reject(err);
+				}
+			} else {
+				resolve(result);
+			}
 		});
 	});
 }
