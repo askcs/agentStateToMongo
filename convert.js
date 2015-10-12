@@ -25,8 +25,8 @@ mongo.connect("mongodb://" + dbParams.host + ":" + dbParams.port + "/" + dbParam
 	}
 	convertAll(database).then(function(result) {
 		database.close();
-		process.exit();
 	}).error(function(err) {
+		database.close();
 		console.log('Error while converting.. ' + err);
 	});
 });
@@ -112,13 +112,14 @@ var insertToMongo = function(db, collection, agentMongoData) {
 				//replace all keys that has . in them with its unicode equivalent
 				if (err.message.indexOf('must not contain \'.\'') != -1) {
 					console.log('Error: ' + JSON.stringify(err) + ' in file: ' + agentMongoData._id + '. Trying to replace by unicode equivalent \\uff0e');
-					var agentMongoProperties = agentMongoData["properties"];
 					var propertyKeys = [];
-					traverse(agentMongoProperties, propertyKeys);
+					traverse(agentMongoData["properties"], propertyKeys);
+					var agentMongoStringified = JSON.stringify(agentMongoData["properties"]);
 					for (var count = 0; count < propertyKeys.length; count++) {
-						var dotReplacedKey = propertyKeys[count].replace('.', '\\uff0e');
-						agentMongoData["properties"] = JSON.parse(JSON.stringify(agentMongoData["properties"]).replace(propertyKeys[count], dotReplacedKey));
+						var dotReplacedKey = propertyKeys[count].replace(/\./g, '\\uff0e').replace(/\$/g, '\\u0024');
+						agentMongoStringified = agentMongoStringified.replace(propertyKeys[count], dotReplacedKey);
 					}
+					agentMongoData["properties"] = JSON.parse(agentMongoStringified);
 					//try to insert the newly updated details
 					dbCollection.insert(agentMongoData, function(err, result) {
 						if (err) {
