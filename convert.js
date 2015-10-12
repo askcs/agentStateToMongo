@@ -27,9 +27,7 @@ mongo.connect("mongodb://" + dbParams.host + ":" + dbParams.port + "/" + dbParam
 		database.close();
 		process.exit();
 	}).error(function(err) {
-		console.log(err);
-		database.close();
-		process.exit();
+		console.log('Error while converting.. ' + err);
 	});
 });
 
@@ -37,7 +35,6 @@ mongo.connect("mongodb://" + dbParams.host + ":" + dbParams.port + "/" + dbParam
 var convertAll = function(db) {
 
 	return new Promise(function(resolve, reject) {
-
 		convertFilesInDir(db, agentDbCollection, eveAgentsPath).then(function(promisedResult) {
 			console.log("Following agent files are inserted: " + JSON.stringify(promisedResult.result));
 			console.log("Total agent data saved in mongoDB: " + promisedResult.count);
