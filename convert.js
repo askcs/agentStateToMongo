@@ -93,24 +93,8 @@ var convertFilesInDir = function(db, collection, dirPath) {
 									resolve(promisedResult);
 								}
 							}).error(function(err) {
-								//check if the json entity is returned back
-								if (err._id) {
-									insertToMongo(db, collection, err).then(function(result) {
-										console.log('Succesfully updated...');
-										allFiles[count] = file;
-										if (++count == files.length) {
-											promisedResult["count"] = count;
-											promisedResult["result"] = allFiles;
-											resolve(promisedResult);
-										}
-									}).error(function(err) {
-										console.log('Not saved, Error while second attempt to save in mongo! Error: ' + JSON.stringify(err));
-										reject(err);
-									})
-								} else {
-									console.log('Not saved, Error result not in agent state format! Error: ' + JSON.stringify(err));
-									reject(err);
-								}
+								console.log('Not saved, Error result not in agent state format! Error: ' + JSON.stringify(err));
+								reject(err);
 							});
 						}
 					});
@@ -125,9 +109,9 @@ var insertToMongo = function(db, collection, agentMongoData) {
 		var dbCollection = db.collection(collection);
 		dbCollection.insert(agentMongoData, function(err, result) {
 			if (err) {
-				console.log('Error: ' + JSON.stringify(err) + ' in file: ' + agentMongoData._id + '. Trying to replace by unicode equivalent \\uff0e');
 				//replace all keys that has . in them with its unicode equivalent
 				if (err.message.indexOf('must not contain \'.\'') != -1) {
+					console.log('Error: ' + JSON.stringify(err) + ' in file: ' + agentMongoData._id + '. Trying to replace by unicode equivalent \\uff0e');
 					var agentMongoProperties = agentMongoData["properties"];
 					var propertyKeys = [];
 					traverse(agentMongoProperties, propertyKeys);
@@ -135,7 +119,14 @@ var insertToMongo = function(db, collection, agentMongoData) {
 						var dotReplacedKey = propertyKeys[count].replace('.', '\\uff0e');
 						agentMongoData["properties"] = JSON.parse(JSON.stringify(agentMongoData["properties"]).replace(propertyKeys[count], dotReplacedKey));
 					}
-					reject(agentMongoData);
+					//try to insert the newly updated details
+					dbCollection.insert(agentMongoData, function(err, result) {
+						if (err) {
+							reject(err);
+						} else {
+							resolve(result);
+						}
+					});
 				} else {
 					reject(err);
 				}
