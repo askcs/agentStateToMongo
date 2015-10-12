@@ -104,11 +104,11 @@ var convertFilesInDir = function(db, collection, dirPath) {
 											resolve(promisedResult);
 										}
 									}).error(function(err) {
-										console.log('Something really went wrong! Error: ' + JSON.stringify(err));
+										console.log('Not saved, Error while second attempt to save in mongo! Error: ' + JSON.stringify(err));
 										reject(err);
 									})
 								} else {
-									console.log('Something really went wrong! Error: ' + JSON.stringify(err));
+									console.log('Not saved, Error result not in agent state format! Error: ' + JSON.stringify(err));
 									reject(err);
 								}
 							});
