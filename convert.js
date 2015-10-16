@@ -7,16 +7,21 @@ var fs = require('fs'),
 	Promise = require('bluebird');
 
 //mongo db connections
-var dbParams = {
-	"class": "com.almende.eve.state.mongo.MongoStateBuilder",
-	"host": "localhost",
-	"port": 27017,
-	"database": "askpack-script"
+function DBParams() {
+	var dbParams = new Object();
+	dbParams["class"] = "com.almende.eve.state.mongo.MongoStateBuilder";
+	dbParams["host"] = "localhost";
+	dbParams["port"] = 27017;
+	dbParams["database"] = "askpack-script";
+	return dbParams;
 };
-var eveAgentsPath = "./eve-agents";
-var eveSchedulerPath = "./eve-scheduler";
+
+var eveAgentsPath = "./eveagents";
+var eveSchedulerPath = "./evescheduler";
 var agentDbCollection = "agents",
-	schedulerDbCollection = "scheduler";
+	schedulerDbCollection = "scheduler",
+	initServiceDbCollection = "initService",
+	dbParams = new DBParams();
 
 mongo.connect("mongodb://" + dbParams.host + ":" + dbParams.port + "/" + dbParams.database, function(err, database) {
 	if (err) {
@@ -77,13 +82,28 @@ var convertFilesInDir = function(db, collection, dirPath) {
 							//initialize the agentMongoData
 							agentMongoData["timestamp"] = new Date().getTime();
 							agentMongoData["_id"] = file;
-							dbParams["id"] = file;
-							dbParams["collection"] = collection;
-							agentMongoData["myParams"] = dbParams;
+							var agentMongoDataParams = new DBParams();
+							agentMongoDataParams["id"] = file;
+							agentMongoDataParams["collection"] = collection;
+							agentMongoData["myParams"] = agentMongoDataParams;
 							if (json.trim().length == 0) {
 								json = "{}";
 							}
-							agentMongoData["properties"] = JSON.parse(json);
+							var jsonObj = JSON.parse(json);
+							//insert the data to the initService table
+							if (collection == agentDbCollection && jsonObj["entry"]) {
+								var entryParams = updateEntry(jsonObj["entry"], file);
+								agentMongoData["properties"] = {};
+								agentMongoData["properties"]["entry"] = entryParams;
+								insertToMongo(db, initServiceDbCollection, agentMongoData).then(function(result) {}).error(function(err) {
+									console.log('Not saved, Error result not in agent state format! Error: ' + JSON.stringify(err));
+									reject(err);
+								});
+							}
+							agentMongoData["properties"] = jsonObj;
+							//update the params, scheduler and instantiation service in the entry key
+							var entryData = agentMongoData["properties"]["entry"];
+							agentMongoData["properties"]["entry"] = updateEntry(entryData, file);
 							//write agentMongoData to db
 							insertToMongo(db, collection, agentMongoData).then(function(result) {
 								allFiles[count] = file;
@@ -152,5 +172,31 @@ var traverse = function(jsonObj, keys) {
 				}
 			}
 		});
+	}
+}
+
+var updateEntry = function(entryData, file) {
+	if (entryData && entryData["params"]) {
+		var entryDataParams = entryData["params"];
+		if (entryDataParams["state"]) {
+			var stateParams = new DBParams();
+			stateParams["collection"] = agentDbCollection;
+			stateParams["id"] = file;
+			entryDataParams["state"] = stateParams;
+		}
+		if (entryDataParams["scheduler"]) {
+			var stateParams = new DBParams();
+			stateParams["collection"] = schedulerDbCollection;
+			stateParams["id"] = "scheduler_" + file;
+			entryDataParams["scheduler"]["state"] = stateParams;
+		}
+		if (entryDataParams["instantiationService"]) {
+			var stateParams = new DBParams();
+			stateParams["collection"] = initServiceDbCollection;
+			stateParams["id"] = "InitService";
+			entryDataParams["instantiationService"]["state"] = stateParams;
+		}
+		entryData["params"] = entryDataParams;
+		return entryData;
 	}
 }
