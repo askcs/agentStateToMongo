@@ -16,8 +16,8 @@ function DBParams() {
 	return dbParams;
 };
 
-var eveAgentsPath = "./eveagents";
-var eveSchedulerPath = "./evescheduler";
+var eveAgentsPath = "./dev-agents/eveagents";
+var eveSchedulerPath = "./dev-agents/evescheduler";
 var agentDbCollection = "agents",
 	schedulerDbCollection = "scheduler",
 	initServiceDbCollection = "initService",
@@ -127,6 +127,7 @@ var convertFilesInDir = function(db, collection, dirPath) {
 var insertToMongo = function(db, collection, agentMongoData) {
 	return new Promise(function(resolve, reject) {
 		var dbCollection = db.collection(collection);
+		agentMongoData["properties"] = JSON.stringify(agentMongoData["properties"]);
 		dbCollection.insert(agentMongoData, function(err, result) {
 			if (err) {
 				//replace all keys that has . in them with its unicode equivalent
@@ -139,17 +140,20 @@ var insertToMongo = function(db, collection, agentMongoData) {
 						var dotReplacedKey = propertyKeys[count].replace(/\./g, '\\uff0e').replace(/\$/g, '\\u0024');
 						agentMongoStringified = agentMongoStringified.replace(propertyKeys[count], dotReplacedKey);
 					}
-					agentMongoData["properties"] = JSON.parse(agentMongoStringified);
+					// agentMongoData["properties"] = JSON.parse(agentMongoStringified);
+					agentMongoData["properties"] = agentMongoStringified;
 					//try to insert the newly updated details
 					dbCollection.insert(agentMongoData, function(err, result) {
 						if (err) {
-							reject(err);
+							console.log('Error converting id' + agentMongoData._id);
+                            resolve(err);
 						} else {
 							resolve(result);
 						}
 					});
 				} else {
-					reject(err);
+					console.log('Error converting id' + agentMongoData._id);
+                    resolve(err);
 				}
 			} else {
 				resolve(result);
@@ -158,22 +162,22 @@ var insertToMongo = function(db, collection, agentMongoData) {
 	});
 }
 
-var traverse = function(jsonObj, keys) {
-	if (jsonObj && typeof jsonObj == "object") {
-		var jsonKeys = Object.keys(jsonObj);
-		jsonKeys.forEach(function(key) {
-			if (key) {
-				// k is either an array index or object key
-				keys.push(key);
-				var traversedKeys = traverse(jsonObj[key], keys);
-				if (traversedKeys && traversedKeys.length != 0) {
-					keys.push(traversedKeys);
-					return;
-				}
-			}
-		});
-	}
-}
+// var traverse = function(jsonObj, keys) {
+// 	if (jsonObj && typeof jsonObj == "object") {
+// 		var jsonKeys = Object.keys(jsonObj);
+// 		jsonKeys.forEach(function(key) {
+// 			if (key) {
+// 				// k is either an array index or object key
+// 				keys.push(key);
+// 				var traversedKeys = traverse(jsonObj[key], keys);
+// 				if (traversedKeys && traversedKeys.length != 0) {
+// 					keys.push(traversedKeys);
+// 					return;
+// 				}
+// 			}
+// 		});
+// 	}
+// }
 
 var updateEntry = function(entryData, file) {
 	if (entryData && entryData["params"]) {
