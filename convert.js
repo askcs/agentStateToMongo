@@ -16,8 +16,8 @@ function DBParams() {
 	return dbParams;
 };
 
-var eveAgentsPath = "./dev-agents/eveagents";
-var eveSchedulerPath = "./dev-agents/evescheduler";
+var eveAgentsPath = "./eve-agents/";
+var eveSchedulerPath = "./eve-scheduler/";
 var agentDbCollection = "agents",
 	schedulerDbCollection = "scheduler",
 	initServiceDbCollection = "initService",
