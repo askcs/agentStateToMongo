@@ -1,7 +1,7 @@
 /**
  * Created by Shravan Shetty on 07-10-15.
  */
-var fs = require('fs'),
+var fs = require('graceful-fs'),
 	path = require("path"),
 	mongo = require('mongodb').MongoClient,
 	Promise = require('bluebird');
